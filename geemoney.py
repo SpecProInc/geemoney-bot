@@ -1,9 +1,8 @@
 import os
-import asyncio
 import logging
+import requests
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from openai import OpenAI
 
 # ============================================
 # STEP 1: PASTE YOUR KEYS HERE (BETWEEN THE QUOTES)
@@ -58,16 +57,44 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ============================================
-# OPENROUTER CLIENT — FREE TIER, ANY EMAIL
-# ============================================
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY,
-)
+# OpenRouter API endpoint
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Pick your free model — swap this string to change models:
 FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+
+
+def call_openrouter(user_message: str) -> str:
+    """Call OpenRouter API using plain requests — NO library drama"""
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://geemoney-bot.com",
+        "X-Title": "Gee Money Bot",
+    }
+
+    payload = {
+        "model": FREE_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ],
+        "temperature": 0.9,
+        "max_tokens": 2048,
+    }
+
+    try:
+        response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=60)
+        response.raise_for_status()
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
+    except requests.exceptions.Timeout:
+        return "Aye, the AI brain took too long to respond, fam. The free model might be overloaded. Try again in 10 seconds, bitch ass nigga."
+    except requests.exceptions.HTTPError as e:
+        return f"Aye, OpenRouter hit us with an error: {e.response.status_code}. Check your API key or maybe you hit the free limit. Go to openrouter.ai/keys and verify, lil bro."
+    except Exception as e:
+        logger.error(f"OpenRouter error: {e}")
+        return "Aye, something broke on the backend, fam. Could be the model is down or your key is wrong. Check openrouter.ai/keys and try again, bitch ass nigga."
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -103,32 +130,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id, action="typing"
     )
 
-    try:
-        # Call OpenRouter API
-        completion = client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "https://geemoney-bot.com",
-                "X-Title": "Gee Money Bot",
-            },
-            model=FREE_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.9,
-            max_tokens=2048,
-        )
-
-        reply = completion.choices[0].message.content
-
-    except Exception as e:
-        logger.error(f"OpenRouter API error: {e}")
-        reply = (
-            "Aye, my brain just glitched for a sec, fam. "
-            "Either your OpenRouter API key is wrong, you hit the free limit, or the model is down. "
-            "Check your key at openrouter.ai/keys and make sure you got credits. "
-            "Don't panic, bitch ass nigga, we gonna figure it out."
-        )
+    # Call OpenRouter using plain requests — no library bullshit
+    reply = call_openrouter(user_msg)
 
     await update.message.reply_text(reply)
 
@@ -160,7 +163,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Run the bot — FIXED for newer python-telegram-bot versions
+    # Run the bot
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True,
