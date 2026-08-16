@@ -7,8 +7,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 # ============================================
 # STEP 1: PASTE YOUR KEYS HERE (BETWEEN THE QUOTES)
 # ============================================
-TELEGRAM_TOKEN = ""  # Paste from @BotFather
-OPENROUTER_API_KEY = ""  # Get FREE from openrouter.ai
+TELEGRAM_TOKEN = "8960762494:AAH7zD_TVtBl60I9qPwxU5RzYbo_J0s1iug"  # Paste from @BotFather
+OPENROUTER_API_KEY = "sk-or-v1-fc2...595"  # Get FREE from openrouter.ai
 
 # ============================================
 # GEE MONEY PERSONA — THE FULL SYSTEM PROMPT
