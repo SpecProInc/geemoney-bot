@@ -8,11 +8,8 @@ from openai import OpenAI
 # ============================================
 # STEP 1: PASTE YOUR KEYS HERE (BETWEEN THE QUOTES)
 # ============================================
-TELEGRAM_TOKEN = "8960762494:AAH7zD_TVtBl60I9qPwxU5RzYbo_J0s1iug"  # Paste from @BotFather
-OPENROUTER_API_KEY = "sk-or-v1-fc2...595"  # Get FREE from openrouter.ai — accepts ANY email
-
-# Optional: If you got a few dollars for OpenAI direct, uncomment below
-# OPENAI_API_KEY = ""
+TELEGRAM_TOKEN = ""  # Paste from @BotFather
+OPENROUTER_API_KEY = ""  # Get FREE from openrouter.ai
 
 # ============================================
 # GEE MONEY PERSONA — THE FULL SYSTEM PROMPT
@@ -64,18 +61,12 @@ logger = logging.getLogger(__name__)
 # ============================================
 # OPENROUTER CLIENT — FREE TIER, ANY EMAIL
 # ============================================
-# OpenRouter lets you call Llama, DeepSeek, Gemini, and more for FREE
-# No .com email discrimination, no credit card required to start
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=OPENROUTER_API_KEY,
 )
 
 # Pick your free model — swap this string to change models:
-# "meta-llama/llama-3.3-70b-instruct:free"  (fast, smart, reliable)
-# "google/gemini-2.5-pro-exp-03-25:free"    (Google's best, experimental)
-# "deepseek/deepseek-chat:free"             (Chinese beast, great at code)
-# "nvidia/llama-3.1-nemotron-70b-instruct:free" (Nvidia tuned, very capable)
 FREE_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
 
@@ -95,8 +86,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle any text or voice message from the user"""
     user = update.effective_user
 
-    # Handle voice messages — Telegram auto-transcribes on most phones,
-    # but if not, we just tell them to text for now
+    # Handle voice messages
     if update.message.voice:
         await update.message.reply_text(
             "Aye, I heard you talkin' but I ain't got ears yet, lil bro. "
@@ -114,18 +104,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     try:
-        # Call OpenRouter API — FREE TIER, NO EMAIL DISCRIMINATION
+        # Call OpenRouter API
         completion = client.chat.completions.create(
             extra_headers={
-                "HTTP-Referer": "https://geemoney-bot.com",  # Required by OpenRouter
-                "X-Title": "Gee Money Bot",                   # Required by OpenRouter
+                "HTTP-Referer": "https://geemoney-bot.com",
+                "X-Title": "Gee Money Bot",
             },
             model=FREE_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_msg},
             ],
-            temperature=0.9,  # Keep it spicy
+            temperature=0.9,
             max_tokens=2048,
         )
 
@@ -137,7 +127,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Aye, my brain just glitched for a sec, fam. "
             "Either your OpenRouter API key is wrong, you hit the free limit, or the model is down. "
             "Check your key at openrouter.ai/keys and make sure you got credits. "
-            "If the free model actin' up, open the code and swap FREE_MODEL to another one. "
             "Don't panic, bitch ass nigga, we gonna figure it out."
         )
 
@@ -171,8 +160,11 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Run the bot until you hit Ctrl+C
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Run the bot — FIXED for newer python-telegram-bot versions
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
 
 
 if __name__ == "__main__":
