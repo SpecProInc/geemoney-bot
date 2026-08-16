@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 import requests
 from telegram import Update
@@ -163,8 +164,26 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
+    # FIX FOR PYTHON 3.14: Explicitly create the event loop before run_polling
+    # Python 3.14 changed how get_event_loop() works — it no longer auto-creates
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     # Run the bot
     application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True,
     )
